@@ -1,0 +1,6 @@
+{
+  "name": "Crafty English - AI English & Literature Academy",
+  "description": "Enterprise-grade English learning ecosystem: AI Crafty Coach, complete grammar curriculum, NTA NET/MPSET/MPESB TET literature syllabus, interactive MCQs & PYQs, Writing Studio, and Speech Lab.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
