@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Home,
   BookOpen,
   GraduationCap,
   FileCheck2,
@@ -11,491 +12,311 @@ import {
   Flame,
   Zap,
   ArrowRight,
-  ShieldCheck,
-  Landmark,
-  Puzzle,
+  Search,
   Sparkles,
   Mail,
   UserCheck,
+  FolderKanban,
+  Feather,
+  Globe,
+  ShieldCheck,
 } from 'lucide-react';
-import { NavTab, UserStats } from '../types';
+import { AppLanguage, LiteratureTrack, NavTab, ResourceSubTab, UserStats } from '../types';
+import { LEVEL_DEFINITIONS } from '../data/grammar37';
 import { audioFeedback } from '../utils/audioFeedback';
+import { CraftyLogo } from './CraftyLogo';
 
 interface HomeHeroProps {
   setActiveTab: (tab: NavTab) => void;
   userStats: UserStats;
+  language: AppLanguage;
+  onToggleLanguage: (lang: AppLanguage) => void;
+  onOpenSearch: () => void;
+  onOpenGrammarLevelModule: (moduleNumber: number) => void;
   onOpenPricing: () => void;
+  onOpenLiteratureTrack: (track: LiteratureTrack) => void;
+  onOpenPracticeMode: (view: 'interactive' | 'yearwise-archive' | 'practice-15', mode: 'practice' | 'timed') => void;
+  onOpenResourceTab: (subTab: ResourceSubTab) => void;
 }
 
 export const HomeHero: React.FC<HomeHeroProps> = ({
   setActiveTab,
   userStats,
-  onOpenPricing,
+  language,
+  onToggleLanguage,
+  onOpenSearch,
+  onOpenGrammarLevelModule,
+  onOpenLiteratureTrack,
+  onOpenPracticeMode,
 }) => {
+  const isHi = language === 'hi';
+
   const handleNav = (tab: NavTab) => {
     audioFeedback.playClick();
     setActiveTab(tab);
   };
 
-  // Group 1: Exactly 4 Core Academic Pillars
-  const corePillars = [
-    {
-      tab: 'coach' as NavTab,
-      meta: 'AI Mentor · Smart Fix',
-      title: 'AI Crafty Coach',
-      desc: 'Real-time writing & literature tutoring with dynamic grammar correction and 5-mode academic tone rewriting.',
-      icon: <Bot className="w-5 h-5 text-sky-700" />,
-      iconWrap: 'bg-sky-100 border-sky-200',
-      cta: 'Open AI Coach',
-    },
-    {
-      tab: 'grammar' as NavTab,
-      meta: 'Syntax · 12 Modules',
-      title: 'English Grammar Hub',
-      desc: 'Master the 20 Golden Rules of Subject-Verb Agreement, Correlative Inversions, Tenses, and Quasi-Passives.',
-      icon: <BookOpen className="w-5 h-5 text-blue-700" />,
-      iconWrap: 'bg-blue-100 border-blue-200',
-      cta: 'Explore Grammar',
-    },
-    {
-      tab: 'literature' as NavTab,
-      meta: 'NET · MPSET · TET',
-      title: 'Literature & Syllabi',
-      desc: 'Complete 10-unit NTA NET Paper 1 & 2, unified MPSET Literature, and MPESB Grade 1 & 2 NCERT texts with exam points.',
-      icon: <GraduationCap className="w-5 h-5 text-sky-700" />,
-      iconWrap: 'bg-sky-100 border-sky-200',
-      cta: 'View All Syllabi',
-    },
-    {
-      tab: 'mpesb-paper1' as NavTab,
-      meta: 'Grade 1 & 2 Common',
-      title: 'MPESB Paper 1 Hub',
-      desc: 'Full 5-unit Part-A syllabus covering CDP, Hindi, English, MP GK & Reasoning plus Top 100 Exam Points and PYQs.',
-      icon: <Landmark className="w-5 h-5 text-amber-700" />,
-      iconWrap: 'bg-amber-50 border-amber-200',
-      cta: 'Open Paper 1 Hub',
-    },
-  ];
-
-  // Group 2: Exactly 6 Practice & Mastery Studios (symmetric 3x2 grid)
-  const practiceStudios = [
-    {
-      tab: 'mcqs' as NavTab,
-      meta: '2014–2024 Archive · Timed Mock',
-      title: 'PYQs & Exam Simulator',
-      desc: 'Year-wise past paper engine for NTA NET, MPSET, MPESB Grade 1 & 2, and Grammar with step-by-step rationales.',
-      icon: <FileCheck2 className="w-5 h-5 text-emerald-700" />,
-      iconWrap: 'bg-emerald-50 border-emerald-200',
-      cta: 'Launch Simulator',
-    },
-    {
-      tab: 'vocab' as NavTab,
-      meta: 'SRS Algorithm · UK Audio',
-      title: 'Vocabulary Forge',
-      desc: 'Spaced repetition flashcards featuring literary terminology, etymology roots, and contextual usage.',
-      icon: <Layers className="w-5 h-5 text-sky-700" />,
-      iconWrap: 'bg-sky-100 border-sky-200',
-      cta: 'Review Flashcards',
-    },
-    {
-      tab: 'syntax-games' as NavTab,
-      meta: 'Interactive · POS Tagging',
-      title: 'Idiom & Syntax Puzzles',
-      desc: 'Clause restructuring challenges and contextual idiom builders with historical origin notes.',
-      icon: <Puzzle className="w-5 h-5 text-emerald-700" />,
-      iconWrap: 'bg-emerald-50 border-emerald-200',
-      cta: 'Play Workshops',
-    },
-    {
-      tab: 'writing-studio' as NavTab,
-      meta: 'Flesch-Kincaid · Showcase',
-      title: 'Writing Studio & Portfolio',
-      desc: 'Editorial manuscript canvas with live readability indexing, passive voice checks, and peer review.',
-      icon: <PenTool className="w-5 h-5 text-blue-700" />,
-      iconWrap: 'bg-blue-100 border-blue-200',
-      cta: 'Open Manuscript',
-    },
-    {
-      tab: 'speech-lab' as NavTab,
-      meta: 'Waveform · UK RP & US',
-      title: 'Speech & Pronunciation Lab',
-      desc: 'Acoustic waveform simulator and phonemic accuracy matrix comparing British RP and American stress.',
-      icon: <Mic className="w-5 h-5 text-sky-700" />,
-      iconWrap: 'bg-sky-100 border-sky-200',
-      cta: 'Open Speech Lab',
-    },
-    {
-      tab: 'progress' as NavTab,
-      meta: 'CEFR Tree · Leaderboard',
-      title: 'Progress & Skill Tree',
-      desc: 'Track A1-to-JRF milestones, consecutive revision streaks, scholar XP, and unlockable badges.',
-      icon: <Trophy className="w-5 h-5 text-amber-700" />,
-      iconWrap: 'bg-amber-50 border-amber-200',
-      cta: 'View Progress',
-    },
-  ];
-
-  const examBlueprints = [
-    {
-      title: 'NTA NET Paper 1',
-      meta: 'Units 1–10',
-      desc: 'Teaching Aptitude, Research Ethics, Square of Opposition, Indian Logic, ICT, SDGs, and Higher Education.',
-      tab: 'literature' as NavTab,
-    },
-    {
-      title: 'NET & MPSET Paper 2',
-      meta: 'Unified Literature',
-      desc: 'Drama, Poetry, Fiction, Prose, ELT, Indian Writing, Cultural Studies, and Post-WWII Literary Theory.',
-      tab: 'literature' as NavTab,
-    },
-    {
-      title: 'MPESB Grade-1 & Paper 1',
-      meta: 'Varg 1 Selection',
-      desc: 'Class 9–12 NCERT texts, Figures of Speech, Poetic Forms, plus complete Part-A Common Paper syllabus.',
-      tab: 'mpesb-paper1' as NavTab,
-    },
-    {
-      title: 'MPESB Grade-2 & TET',
-      meta: 'Varg 2 Pedagogy',
-      desc: 'Applied Grammar, Lexical Affixes, and 15-Mark Language Development Pedagogy (Chomsky, Krashen, LSRW).',
-      tab: 'literature' as NavTab,
-    },
+  // All 13 Main Navigation Sections Grid
+  const all13Directory: {
+    id: NavTab;
+    labelEn: string;
+    labelHi: string;
+    subEn: string;
+    subHi: string;
+    icon: React.FC<{ className?: string }>;
+  }[] = [
+    { id: 'home', labelEn: 'Home', labelHi: 'मुख्य पृष्ठ', subEn: 'Academy Overview', subHi: 'संस्थान परिचय', icon: Home },
+    { id: 'grammar', labelEn: 'English Grammar', labelHi: 'अंग्रेज़ी व्याकरण', subEn: '37 Bilingual Modules', subHi: '37 द्विभाषी मॉड्यूल', icon: BookOpen },
+    { id: 'literature', labelEn: 'English Literature', labelHi: 'अंग्रेज़ी साहित्य', subEn: 'NET / MPSET / NCERT', subHi: 'साहित्य व आलोचना', icon: Feather },
+    { id: 'speech-lab', labelEn: 'Spoken English', labelHi: 'स्पोकन अंग्रेज़ी', subEn: 'Pronunciation & Lab', subHi: 'उच्चारण व संवाद', icon: Mic },
+    { id: 'vocab', labelEn: 'Vocabulary', labelHi: 'शब्द-संपदा', subEn: 'Roots, SRS & Idioms', subHi: 'मूल शब्द व मुहावरे', icon: Layers },
+    { id: 'writing-studio', labelEn: 'Writing Skills', labelHi: 'लेखन कौशल', subEn: 'Letters, Précis & Essays', subHi: 'पत्र, संक्षेपण व निबंध', icon: PenTool },
+    { id: 'mcqs', labelEn: 'Practice Zone', labelHi: 'अभ्यास क्षेत्र', subEn: '15 Question Formats', subHi: '15 प्रारूप व प्रश्न बैंक', icon: FileCheck2 },
+    { id: 'competitive', labelEn: 'Competitive Exams', labelHi: 'प्रतियोगी परीक्षाएँ', subEn: 'UGC NET & MPESB TET', subHi: 'NET, MPSET व वर्ग 1-2', icon: GraduationCap },
+    { id: 'resources', labelEn: 'Study Materials', labelHi: 'अध्ययन सामग्री', subEn: 'Notes, PDF & Charts', subHi: 'नोट्स, PDF व चार्ट', icon: FolderKanban },
+    { id: 'coach', labelEn: 'AI English Tutor', labelHi: 'AI अंग्रेज़ी शिक्षक', subEn: '3 Adaptive Levels', subHi: '3 शिक्षण स्तर', icon: Bot },
+    { id: 'progress', labelEn: 'My Learning', labelHi: 'मेरी प्रगति', subEn: 'Badges & Certificates', subHi: 'बैज व प्रमाणपत्र', icon: Trophy },
+    { id: 'about', labelEn: 'About Us', labelHi: 'हमारे बारे में', subEn: 'Mr. ChainSingh Kushro', subHi: 'संस्थापक परिचय', icon: UserCheck },
+    { id: 'contact', labelEn: 'Contact Us', labelHi: 'संपर्क करें', subEn: 'Academic Support', subHi: 'सीधा संवाद व पूछताछ', icon: Mail },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10">
-      {/* Hero Split Frame */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-sky-50 to-blue-100/75 border border-sky-200 p-7 sm:p-10 shadow-lg shadow-sky-900/5">
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          {/* Left Column: Editorial Headline & Primary Actions */}
-          <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-sky-700">
-                <Sparkles className="w-3.5 h-3.5 text-sky-600" />
-                <span>NTA UGC NET</span>
-                <span className="text-sky-300" aria-hidden="true">·</span>
-                <span>MPSET Literature</span>
-                <span className="text-sky-300" aria-hidden="true">·</span>
-                <span>MPESB Grade 1 & 2</span>
+    <div className="space-y-8">
+      {/* Main Brand Hero Showcase */}
+      <section className="rounded-3xl bg-gradient-to-br from-[#0a192f] via-[#0f2544] to-blue-800 text-white p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="lg:col-span-8 space-y-5">
+            <div className="inline-flex items-center gap-2.5">
+              <CraftyLogo className="w-11 h-11 shrink-0" />
+              <div>
+                <div className="text-xs font-bold uppercase tracking-widest text-amber-300">
+                  Crafty English · Learn Smart. Speak Confidently. Master English.
+                </div>
+                <div className="text-xs text-blue-200">
+                  Founded &amp; Directed by Mr. ChainSingh Kushro · chaink2000@gmail.com
+                </div>
               </div>
-
-              <h1 className="font-editorial text-3xl sm:text-5xl font-bold text-slate-900 tracking-tight leading-[1.12] [text-wrap:balance]">
-                Master English, Literature &{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-600 via-blue-600 to-sky-800">
-                  Competitive Excellence.
-                </span>
-              </h1>
-
-              <p className="text-slate-700 text-sm sm:text-base font-sans leading-relaxed max-w-2xl">
-                An integrated academic workspace by <strong className="text-slate-900 font-semibold">Mr. ChainSingh Kushro</strong> combining AI grammar & essay mentoring, complete 10-unit syllabi, 100-point MPESB Paper 1 notes, and 10 years of authentic PYQs.
-              </p>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={() => handleNav('coach')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm shadow-md shadow-sky-600/20 transition-colors cursor-pointer"
-                >
-                  <Bot className="w-4 h-4" />
-                  <span>Launch AI Crafty Coach</span>
-                </button>
-                <button
-                  onClick={() => handleNav('mcqs')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-sky-50 border border-sky-200 text-slate-800 font-semibold text-sm shadow-sm transition-colors cursor-pointer"
-                >
-                  <FileCheck2 className="w-4 h-4 text-emerald-600" />
-                  <span>Solve Authentic PYQs</span>
-                </button>
-              </div>
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+              {isHi
+                ? 'अंग्रेज़ी सीखें. व्याकरण में महारत पाएं. साहित्य का अन्वेषण करें.'
+                : 'Learn English. Master Grammar. Explore Literature.'}
+            </h1>
 
-              <div className="flex flex-wrap items-center gap-5 pt-1 text-xs text-slate-600 font-medium">
+            <p className="text-sm sm:text-base text-blue-100 max-w-2xl leading-relaxed">
+              {isHi
+                ? '6 प्रगतिशील स्तरों में विभाजित 37 द्विभाषी (अंग्रेज़ी / हिन्दी) व्याकरण मॉड्यूल, 15 प्रकार के इंटरैक्टिव अभ्यास प्रश्न, NTA UGC NET व MPESB प्रतियोगी परीक्षा पाठ्यक्रम और AI शिक्षक के साथ संपूर्ण शैक्षणिक मंच।'
+                : 'A complete academic platform uniting 37 bilingual English/हिंदी grammar modules across 6 progressive levels, 15 interactive practice formats, NTA UGC NET & MPESB TET competitive tracks, and an adaptive AI English Tutor.'}
+            </p>
+
+            {/* Quick Action Search Bar + Primary CTAs */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-1">
+              <button
+                onClick={onOpenSearch}
+                className="flex-1 max-w-md flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/25 text-left text-sm text-blue-100 transition-colors cursor-pointer"
+              >
+                <Search className="w-4 h-4 text-amber-300 shrink-0" />
+                <span className="truncate">
+                  {isHi
+                    ? 'पाठ, नियम, लेखक, पुस्तक या प्रश्न खोजें...'
+                    : 'Search lessons, grammar rules, authors, or PYQs...'}
+                </span>
+              </button>
+
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => handleNav('grammar')}
-                  className="inline-flex items-center gap-1.5 hover:text-sky-700 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-[#0a192f] text-sm font-extrabold shadow-lg cursor-pointer transition-colors"
                 >
-                  <BookOpen className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Grammar Curriculum</span>
+                  <BookOpen className="w-4 h-4" />
+                  <span>{isHi ? '37 व्याकरण मॉड्यूल शुरू करें' : 'Start 37 Grammar Modules'}</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
+
                 <button
-                  onClick={() => handleNav('mpesb-paper1')}
-                  className="inline-flex items-center gap-1.5 hover:text-sky-700 transition-colors cursor-pointer"
+                  onClick={() => onOpenPracticeMode('practice-15', 'practice')}
+                  className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer transition-colors"
                 >
-                  <Landmark className="w-3.5 h-3.5 text-amber-600" />
-                  <span>MPESB Paper 1 (100 Points)</span>
-                </button>
-                <button
-                  onClick={() => {
-                    audioFeedback.playClick();
-                    onOpenPricing();
-                  }}
-                  className="inline-flex items-center gap-1.5 hover:text-sky-700 transition-colors cursor-pointer"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Pro Access Plans</span>
+                  <Sparkles className="w-4 h-4 text-amber-300" />
+                  <span>{isHi ? '15-प्रारूप अभ्यास' : '15-Format Practice'}</span>
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Scholar Readiness & Telemetry Snapshot */}
-          <div className="lg:col-span-5 rounded-2xl bg-white/95 border border-sky-200 p-6 flex flex-col justify-between space-y-5 shadow-sm">
-            <div className="flex items-center justify-between border-b border-sky-100 pb-3.5">
-              <div>
-                <span className="text-[11px] font-medium text-slate-500 block">Active Track</span>
-                <span className="font-editorial text-lg font-bold text-slate-900">{userStats.level}</span>
-              </div>
+          {/* Right: Live Bilingual & Scholar Summary Card */}
+          <div className="lg:col-span-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                Scholar Snapshot
+              </span>
               <button
-                onClick={() => handleNav('progress')}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 hover:text-sky-900 transition-colors cursor-pointer"
+                onClick={() => onToggleLanguage(language === 'en' ? 'hi' : 'en')}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white text-[#0a192f] text-xs font-extrabold cursor-pointer"
               >
-                <span>Skill Tree</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <Globe className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'हिंदी' : 'English'}</span>
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="p-3.5 rounded-xl bg-sky-50/80 border border-sky-200/80">
-                <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
-                  <span>Daily Streak</span>
-                  <Flame className="w-3.5 h-3.5 text-amber-500" />
-                </div>
-                <span className="text-xl font-bold font-mono tabular-nums text-slate-900">
+              <div className="p-3 rounded-xl bg-[#0a192f]/60 border border-white/10">
+                <div className="text-[11px] text-blue-200">Current Level</div>
+                <div className="text-base font-extrabold text-white mt-0.5">{userStats.level}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-[#0a192f]/60 border border-white/10">
+                <div className="text-[11px] text-blue-200">Active Streak</div>
+                <div className="text-base font-extrabold text-orange-300 flex items-center gap-1 mt-0.5">
+                  <Flame className="w-4 h-4 fill-current" />
                   {userStats.streakDays} Days
-                </span>
-              </div>
-              <div className="p-3.5 rounded-xl bg-sky-50/80 border border-sky-200/80">
-                <div className="flex items-center justify-between text-xs text-slate-600 mb-1">
-                  <span>Scholar XP</span>
-                  <Zap className="w-3.5 h-3.5 text-emerald-600" />
                 </div>
-                <span className="text-xl font-bold font-mono tabular-nums text-slate-900">
+              </div>
+              <div className="p-3 rounded-xl bg-[#0a192f]/60 border border-white/10">
+                <div className="text-[11px] text-blue-200">Scholar XP</div>
+                <div className="text-base font-extrabold text-amber-300 flex items-center gap-1 mt-0.5">
+                  <Zap className="w-4 h-4 fill-current" />
                   {userStats.xp} XP
-                </span>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-[#0a192f]/60 border border-white/10">
+                <div className="text-[11px] text-blue-200">Curriculum</div>
+                <div className="text-base font-extrabold text-emerald-300 mt-0.5">37 Modules</div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-700 font-medium">Grammar Mastery</span>
-                  <span className="font-mono tabular-nums text-sky-700 font-semibold">
-                    {userStats.grammarMasteryPercent}%
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-sky-100 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-blue-600"
-                    style={{ width: `${userStats.grammarMasteryPercent}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-700 font-medium">Literature & Exam Readiness</span>
-                  <span className="font-mono tabular-nums text-emerald-700 font-semibold">
-                    {userStats.literatureMasteryPercent}%
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-sky-100 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
-                    style={{ width: `${userStats.literatureMasteryPercent}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-sky-100 text-xs text-slate-600 font-mono tabular-nums">
-              <span>{userStats.solvedMCQs} PYQs Solved</span>
-              <span aria-hidden="true">·</span>
-              <span>{userStats.vocabWordsMastered} Words Mastered</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 01: Core Examination Tracks & Curriculum (Symmetric 4-Column Row) */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-          <div>
-            <h2 className="font-editorial text-2xl font-bold text-slate-900 tracking-tight">
-              01. Core Curriculum & Exam Prep
-            </h2>
-            <p className="text-xs text-slate-600 mt-0.5">
-              AI coaching, prescriptive grammar, and complete syllabus hubs aligned to official exam blueprints.
-            </p>
-          </div>
-          <span className="text-xs text-sky-700 font-semibold font-mono tabular-nums">4 Core Modules</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {corePillars.map((card) => (
             <button
-              key={card.tab}
-              onClick={() => handleNav(card.tab)}
-              className="text-left bg-white hover:bg-sky-50/70 rounded-2xl border border-sky-200 hover:border-sky-400 p-5 flex flex-col justify-between transition-all duration-150 hover:-translate-y-0.5 shadow-sm hover:shadow-md cursor-pointer group"
+              onClick={() => handleNav('coach')}
+              className="w-full py-2.5 rounded-xl bg-white hover:bg-blue-50 text-[#0a192f] text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer transition-colors"
             >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className={`w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 transition-transform duration-150 group-hover:scale-105 ${card.iconWrap}`}>
-                    {card.icon}
-                  </div>
-                  <span className="text-[11px] font-semibold text-sky-700 truncate">
-                    {card.meta}
-                  </span>
-                </div>
-
-                <div className="space-y-1.5">
-                  <h3 className="font-editorial text-lg font-bold text-slate-900 group-hover:text-sky-800 transition-colors">
-                    {card.title}
-                  </h3>
-                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">
-                    {card.desc}
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-4 mt-4 border-t border-sky-100 flex items-center justify-between text-xs font-semibold text-sky-700 group-hover:text-sky-900">
-                <span>{card.cta}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-sky-600 group-hover:translate-x-1 transition-transform" />
-              </div>
+              <Bot className="w-4 h-4 text-blue-700" />
+              <span>{isHi ? 'AI अंग्रेज़ी शिक्षक से पूछें' : 'Ask AI English Tutor Now'}</span>
             </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Section 02: Interactive Practice Studios & Analytics (Symmetric 3x2 Grid) */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-          <div>
-            <h2 className="font-editorial text-2xl font-bold text-slate-900 tracking-tight">
-              02. Practice Studios & Skill Analytics
-            </h2>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Timed PYQ papers, spaced-repetition flashcards, syntax puzzles, manuscript review, and speech scoring.
-            </p>
           </div>
-          <span className="text-xs text-sky-700 font-semibold font-mono tabular-nums">6 Interactive Studios</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {practiceStudios.map((card) => (
-            <button
-              key={card.tab}
-              onClick={() => handleNav(card.tab)}
-              className="text-left bg-white hover:bg-sky-50/70 rounded-2xl border border-sky-200 hover:border-sky-400 p-5 flex flex-col justify-between transition-all duration-150 hover:-translate-y-0.5 shadow-sm hover:shadow-md cursor-pointer group"
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className={`w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 transition-transform duration-150 group-hover:scale-105 ${card.iconWrap}`}>
-                    {card.icon}
-                  </div>
-                  <span className="text-[11px] font-semibold text-sky-700 truncate">
-                    {card.meta}
-                  </span>
-                </div>
-
-                <div className="space-y-1.5">
-                  <h3 className="font-editorial text-lg font-bold text-slate-900 group-hover:text-sky-800 transition-colors">
-                    {card.title}
-                  </h3>
-                  <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
-                    {card.desc}
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-4 mt-4 border-t border-sky-100 flex items-center justify-between text-xs font-semibold text-sky-700 group-hover:text-sky-900">
-                <span>{card.cta}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-sky-600 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </button>
-          ))}
         </div>
       </section>
 
-      {/* Section 03: Target Examination Blueprints */}
-      <section className="rounded-2xl bg-white border border-sky-200 p-6 space-y-5 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      {/* 6 Progressive Grammar Levels Overview */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="font-editorial text-xl font-bold text-slate-900 flex items-center gap-2">
-              <GraduationCap className="w-5 h-5 text-sky-600" />
-              <span>Target Examination Syllabi Covered</span>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-[#0a192f] dark:text-white">
+              {isHi
+                ? '6 प्रगतिशील व्याकरण स्तर (37 पूर्ण मॉड्यूल)'
+                : '6 Progressive Grammar Levels (37 Complete Modules)'}
             </h2>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Official syllabus breakdowns, 100-point high-yield digests, and previous year trends.
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+              {isHi
+                ? 'प्रत्येक स्तर में अंग्रेज़ी और हिन्दी व्याख्या, सूत्र, 10+ उदाहरण, 20 MCQs व मूल्यांकन शामिल हैं।'
+                : 'Click any level to jump straight into bilingual 19-section lessons, formulas, and assessments.'}
             </p>
           </div>
           <button
-            onClick={() => handleNav('literature')}
-            className="text-xs text-sky-700 font-semibold hover:text-sky-900 inline-flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+            onClick={() => handleNav('grammar')}
+            className="text-xs font-bold text-blue-700 dark:text-amber-400 hover:underline cursor-pointer"
           >
-            <span>Open Syllabus Portal</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            Explore All 37 Modules →
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {examBlueprints.map((exam) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {LEVEL_DEFINITIONS.map((lvl) => (
             <button
-              key={exam.title}
-              onClick={() => handleNav(exam.tab)}
-              className="text-left p-4 rounded-xl bg-sky-50/75 border border-sky-200 hover:border-sky-400 hover:bg-sky-100/60 space-y-2 transition-colors cursor-pointer"
+              key={lvl.levelNumber}
+              onClick={() => {
+                audioFeedback.playClick();
+                onOpenGrammarLevelModule(lvl.moduleRange[0]);
+              }}
+              className="text-left p-5 rounded-2xl bg-white dark:bg-[#0d1d36] border border-blue-200 dark:border-blue-800 hover:border-blue-500 dark:hover:border-amber-400 shadow-sm transition-all space-y-2 cursor-pointer group"
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-editorial text-sm font-bold text-slate-900">
-                  {exam.title}
+              <div className="flex items-center justify-between text-xs font-extrabold">
+                <span className="text-blue-700 dark:text-amber-400">
+                  Modules {lvl.moduleRange[0]}–{lvl.moduleRange[1]}
                 </span>
-                <span className="text-[11px] text-sky-700 font-semibold shrink-0">
-                  {exam.meta}
-                </span>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-700 dark:group-hover:text-amber-400 transition-colors" />
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {exam.desc}
+              <h3 className="text-base font-bold text-[#0a192f] dark:text-white">
+                {isHi ? lvl.titleHi : lvl.titleEn}
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                {isHi ? lvl.subtitleHi : lvl.subtitleEn}
               </p>
             </button>
           ))}
         </div>
       </section>
 
-      {/* Section 04: Educator & Founder Profile Bar */}
-      <section className="rounded-2xl bg-gradient-to-r from-sky-50 via-white to-blue-50 border border-sky-200 p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div className="flex items-start sm:items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-sky-100 border border-sky-200 flex items-center justify-center shrink-0">
-              <UserCheck className="w-6 h-6 text-sky-700" />
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-semibold text-sky-700">
-                Founder & Lead Educator
-              </div>
-              <h3 className="font-editorial text-xl font-bold text-slate-900">
-                Mr. ChainSingh Kushro
-              </h3>
-              <p className="text-xs text-slate-600 max-w-2xl">
-                Educator & Curriculum Architect for English Literature, Applied Linguistics, NTA UGC NET (Paper 1 & Paper 2), MPSET, and MPESB Grade 1 & Grade 2 Selection Tests.
-              </p>
-            </div>
-          </div>
+      {/* Complete 13-Section Academy Directory */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-[#0a192f] dark:text-white">
+            {isHi ? 'Crafty English के सभी 13 मुख्य अनुभाग' : 'All 13 Academic Platform Sections'}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+            {isHi
+              ? 'व्याकरण, साहित्य, स्पोकन अंग्रेज़ी, शब्दकोश, अभ्यास क्षेत्र और प्रतियोगी परीक्षाओं तक त्वरित पहुँच।'
+              : 'Direct access to every learning lab, examination track, and cloud student utility.'}
+          </p>
+        </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 shrink-0">
-            <a
-              href="mailto:chaink2000@gmail.com"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-sky-50 border border-sky-200 hover:border-sky-400 text-xs font-semibold text-slate-800 transition-colors shadow-sm"
-            >
-              <Mail className="w-4 h-4 text-sky-600 shrink-0" />
-              <span>chaink2000@gmail.com</span>
-            </a>
-            <button
-              onClick={() => handleNav('literature')}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-colors shadow-sm cursor-pointer"
-            >
-              <span>Browse Courses</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {all13Directory.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNav(item.id)}
+                className="text-left p-4 rounded-2xl bg-white dark:bg-[#0d1d36] border border-blue-200 dark:border-blue-800 hover:border-blue-500 dark:hover:border-amber-400 shadow-sm transition-all flex flex-col gap-2 cursor-pointer"
+              >
+                <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-amber-400 flex items-center justify-center">
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-[#0a192f] dark:text-white">
+                    {isHi ? item.labelHi : item.labelEn}
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {isHi ? item.subHi : item.subEn}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Competitive Examinations Highlight Strip */}
+      <section className="rounded-2xl bg-blue-50/80 dark:bg-[#0d1d36] border border-blue-200 dark:border-blue-800 p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 dark:text-emerald-400">
+            <ShieldCheck className="w-4 h-4" />
+            <span>NTA UGC NET · MPSET · MPESB TET Grade 1, Grade 2 &amp; Common Paper 1</span>
           </div>
+          <h3 className="text-lg font-extrabold text-[#0a192f] dark:text-white">
+            {isHi
+              ? 'प्रतियोगी परीक्षाओं के लिए एकीकृत तैयारी और प्रमाणित PYQs'
+              : 'Dedicated Syllabi & Transparent PYQ Practice for National & State Exams'}
+          </h3>
+        </div>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <button
+            onClick={() => handleNav('competitive')}
+            className="px-4 py-2.5 rounded-xl bg-[#0a192f] dark:bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold cursor-pointer"
+          >
+            Competitive Exams Hub
+          </button>
+          <button
+            onClick={() => onOpenLiteratureTrack('net-mpset-paper2')}
+            className="px-4 py-2.5 rounded-xl bg-white dark:bg-[#0a192f] border border-blue-300 dark:border-blue-700 text-[#0a192f] dark:text-white text-xs font-bold cursor-pointer"
+          >
+            NET Paper 2 Canon
+          </button>
+          <button
+            onClick={() => handleNav('mpesb-paper1')}
+            className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-[#0a192f] text-xs font-extrabold cursor-pointer"
+          >
+            MPESB Common Paper 1
+          </button>
         </div>
       </section>
     </div>

@@ -20,23 +20,34 @@ import {
   FileCheck2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { MCQQuestion } from '../types';
+import { AppLanguage, MCQQuestion, PracticePreset } from '../types';
 import { audioFeedback } from '../utils/audioFeedback';
 import { adminStorage } from '../utils/adminStorage';
+import { PracticeEngine15 } from './PracticeEngine15';
 
 interface McqPyqSimulatorProps {
   onAddXP: (xp: number) => void;
+  initialPreset?: PracticePreset;
+  language?: AppLanguage;
 }
 
-export const McqPyqSimulator: React.FC<McqPyqSimulatorProps> = ({ onAddXP }) => {
-  // Simulator View: 'interactive' (standard simulator) or 'yearwise-archive' (all years catalog)
-  const [simulatorView, setSimulatorView] = useState<'interactive' | 'yearwise-archive'>('interactive');
+export const McqPyqSimulator: React.FC<McqPyqSimulatorProps> = ({
+  onAddXP,
+  initialPreset,
+  language = 'en',
+}) => {
+  // Simulator View: 'practice-15' (15-Format Interactive Practice Engine), 'interactive' (MCQ simulator), or 'yearwise-archive'
+  const [simulatorView, setSimulatorView] = useState<'interactive' | 'yearwise-archive' | 'practice-15'>(
+    initialPreset?.view || 'practice-15'
+  );
 
   const [examFilter, setExamFilter] = useState<string>('All');
   const [yearFilter, setYearFilter] = useState<string>('All Years');
   const [topicFilter] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [testMode, setTestMode] = useState<'practice' | 'timed'>('practice');
+  const [testMode, setTestMode] = useState<'practice' | 'timed'>(
+    initialPreset?.mode || 'practice'
+  );
 
   const yearsList = [
     'All Years',
@@ -73,6 +84,16 @@ export const McqPyqSimulator: React.FC<McqPyqSimulatorProps> = ({ onAddXP }) => 
     window.addEventListener('crafty_storage_update', handleStorageUpdate);
     return () => window.removeEventListener('crafty_storage_update', handleStorageUpdate);
   }, []);
+
+  useEffect(() => {
+    if (initialPreset) {
+      setSimulatorView(initialPreset.view);
+      setTestMode(initialPreset.mode);
+      setIsTestActive(false);
+      setIsTestSubmitted(false);
+      setCurrentIndex(0);
+    }
+  }, [initialPreset]);
 
   // Filtered Questions for interactive simulator
   const filteredQuestions = allQuestions.filter((q) => {
@@ -328,7 +349,21 @@ export const McqPyqSimulator: React.FC<McqPyqSimulatorProps> = ({ onAddXP }) => 
           </div>
 
           {/* View Mode Switcher */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white border border-sky-200 shadow-xs self-start md:self-auto">
+          <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-white border border-sky-200 shadow-xs self-start md:self-auto">
+            <button
+              onClick={() => {
+                audioFeedback.playClick();
+                setSimulatorView('practice-15');
+              }}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                simulatorView === 'practice-15'
+                  ? 'bg-[#0a192f] text-white shadow-sm'
+                  : 'text-slate-600 hover:text-sky-700 hover:bg-sky-50'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>15-Format Practice</span>
+            </button>
             <button
               onClick={() => {
                 audioFeedback.playClick();
@@ -341,7 +376,7 @@ export const McqPyqSimulator: React.FC<McqPyqSimulatorProps> = ({ onAddXP }) => 
               }`}
             >
               <FileCheck2 className="w-3.5 h-3.5" />
-              <span>Question Simulator</span>
+              <span>MCQ Simulator</span>
             </button>
             <button
               onClick={() => {
@@ -355,11 +390,22 @@ export const McqPyqSimulator: React.FC<McqPyqSimulatorProps> = ({ onAddXP }) => 
               }`}
             >
               <Calendar className="w-3.5 h-3.5" />
-              <span>Year-Wise Papers (2014–2024)</span>
+              <span>Year-Wise Papers</span>
             </button>
           </div>
         </div>
       </div>
+
+      {/* VIEW 0: 15-FORMAT INTERACTIVE PRACTICE ENGINE */}
+      {simulatorView === 'practice-15' && (
+        <PracticeEngine15
+          language={language}
+          onAddXP={onAddXP}
+          initialModuleFilter={initialPreset?.moduleNumber}
+          initialExamCategory={initialPreset?.examCategory}
+          initialMode={initialPreset?.mode}
+        />
+      )}
 
       {/* VIEW 1: INTERACTIVE QUESTION SIMULATOR (PRACTICE OR TIMED) */}
       {simulatorView === 'interactive' && (

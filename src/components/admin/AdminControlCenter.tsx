@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
-import { 
-  BarChart3, 
-  Users, 
-  BookMarked, 
-  FileQuestion, 
-  Cpu, 
-  CreditCard, 
-  Settings, 
-  ArrowLeft, 
-  Sparkles, 
+import {
+  BarChart3,
+  Users,
+  BookMarked,
+  FileQuestion,
+  Cpu,
+  CreditCard,
+  Settings,
+  ArrowLeft,
+  Sparkles,
   LogOut,
-  CheckCircle2
+  CheckCircle2,
+  Database,
+  ShieldAlert,
+  LogIn,
 } from 'lucide-react';
 import { AdminSection, NavTab } from '../../types';
-import { adminStorage } from '../../utils/adminStorage';
 import { audioFeedback } from '../../utils/audioFeedback';
+import { useAuth } from '../../context/AuthContext';
 import { AdminOverview } from './AdminOverview';
 import { UserManagement } from './UserManagement';
 import { SyllabusManager } from './SyllabusManager';
@@ -22,19 +25,19 @@ import { QuestionBankCms } from './QuestionBankCms';
 import { AiStudioCms } from './AiStudioCms';
 import { FinancialsCms } from './FinancialsCms';
 import { SystemSettingsCms } from './SystemSettingsCms';
+import { FirestoreAdminPanel } from './FirestoreAdminPanel';
 
 interface AdminControlCenterProps {
   onExitToStudentView: () => void;
   onNavigateTab: (tab: NavTab) => void;
 }
 
-export const AdminControlCenter: React.FC<AdminControlCenterProps> = ({ 
+export const AdminControlCenter: React.FC<AdminControlCenterProps> = ({
   onExitToStudentView,
 }) => {
-  const [activeSection, setActiveSection] = useState<AdminSection>('overview');
+  const { firebaseUser, isAdmin, isSigningIn, signInWithGoogle, logout } = useAuth();
+  const [activeSection, setActiveSection] = useState<AdminSection | 'cloud-cms'>('cloud-cms');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const auth = adminStorage.getAdminAuth();
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -43,49 +46,87 @@ export const AdminControlCenter: React.FC<AdminControlCenterProps> = ({
     }, 3500);
   };
 
-  const handleLogout = () => {
-    audioFeedback.playClick();
-    adminStorage.logoutAdmin();
-    onExitToStudentView();
-  };
+  // Enforce Real Firebase Auth Admin RBAC strictly (chaink2000@gmail.com / Firestore /admins/{uid})
+  if (!firebaseUser || !isAdmin) {
+    return (
+      <div className="max-w-xl mx-auto rounded-3xl bg-white dark:bg-[#0d1d36] border border-blue-200 dark:border-blue-800 p-8 shadow-xl text-center space-y-5 my-8">
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-400 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-7 h-7" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-xl font-extrabold text-[#0a192f] dark:text-white">
+            Protected Admin Control Center (RBAC Required)
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            {firebaseUser
+              ? `Signed in as ${firebaseUser.email}, which holds a Student role. Only verified Administrator accounts (such as Mr. ChainSingh Kushro — chaink2000@gmail.com) may modify Crafty English cloud courses, questions, and site settings.`
+              : 'Sign in with your authorized Crafty English Administrator Google account (chaink2000@gmail.com) to manage courses, questions, CSV imports, and student accounts.'}
+          </p>
+        </div>
 
-  const navItems: { id: AdminSection; label: string; icon: React.ReactNode; badge?: string }[] = [
-    { id: 'overview', label: 'Mission Control', icon: <BarChart3 className="w-4 h-4" /> },
-    { id: 'users', label: 'User & Role RBAC', icon: <Users className="w-4 h-4" /> },
-    { id: 'syllabus-cms', label: 'Syllabus & Tree CMS', icon: <BookMarked className="w-4 h-4" />, badge: 'P1/P2/TET' },
-    { id: 'questions-cms', label: 'Question Bank CMS', icon: <FileQuestion className="w-4 h-4" />, badge: 'AI Explainer' },
+        <div className="flex flex-wrap justify-center gap-3 pt-2">
+          {!firebaseUser ? (
+            <button
+              onClick={signInWithGoogle}
+              disabled={isSigningIn}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0a192f] dark:bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold cursor-pointer"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>{isSigningIn ? 'Signing in...' : 'Sign In with Google Admin Account'}</span>
+            </button>
+          ) : (
+            <button
+              onClick={logout}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Switch Google Account</span>
+            </button>
+          )}
+          <button
+            onClick={onExitToStudentView}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-blue-200 dark:border-blue-800 text-slate-700 dark:text-slate-200 text-xs font-bold cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Home</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const navItems: { id: AdminSection | 'cloud-cms'; label: string; icon: React.ReactNode }[] = [
+    { id: 'cloud-cms', label: 'Cloud Firestore & CSV', icon: <Database className="w-4 h-4" /> },
+    { id: 'overview', label: 'Analytics Overview', icon: <BarChart3 className="w-4 h-4" /> },
+    { id: 'users', label: 'Student Directory', icon: <Users className="w-4 h-4" /> },
+    { id: 'syllabus-cms', label: 'Syllabus Tree CMS', icon: <BookMarked className="w-4 h-4" /> },
+    { id: 'questions-cms', label: 'Question Bank CMS', icon: <FileQuestion className="w-4 h-4" /> },
     { id: 'ai-studio', label: 'AI Prompt Studio', icon: <Cpu className="w-4 h-4" /> },
-    { id: 'financials', label: 'Financials & Coupons', icon: <CreditCard className="w-4 h-4" /> },
-    { id: 'settings', label: 'System & Audit Logs', icon: <Settings className="w-4 h-4" /> },
+    { id: 'financials', label: 'Membership Plans', icon: <CreditCard className="w-4 h-4" /> },
+    { id: 'settings', label: 'Banners & Audit Logs', icon: <Settings className="w-4 h-4" /> },
   ];
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in duration-150">
-      {/* Toast Notification */}
+    <div className="space-y-6 pb-12">
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white border border-emerald-400 shadow-lg text-slate-900 text-xs font-semibold animate-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white dark:bg-[#0d1d36] border border-emerald-400 shadow-lg text-slate-900 dark:text-white text-xs font-semibold">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Top Admin Bar & Role Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-sky-200 shadow-sm">
+      {/* Top Admin Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-[#0d1d36] border border-blue-200 dark:border-blue-800 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0a192f] to-blue-700 flex items-center justify-center text-amber-300 shadow-sm">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="font-editorial text-lg sm:text-xl font-bold text-slate-900">
-                Admin Control Center & CMS
-              </h1>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
-                {auth.role || 'Super Admin'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-600 font-mono">
-              Founder & Educator: Mr. ChainSingh Kushro · Session: {auth.email}
+            <h1 className="text-lg sm:text-xl font-bold text-[#0a192f] dark:text-white">
+              Crafty English Admin Control Center
+            </h1>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Verified RBAC Session: {firebaseUser.email} · Educator: Mr. ChainSingh Kushro
             </p>
           </div>
         </div>
@@ -96,65 +137,50 @@ export const AdminControlCenter: React.FC<AdminControlCenterProps> = ({
               audioFeedback.playClick();
               onExitToStudentView();
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-[#0a192f] border border-blue-200 dark:border-blue-800 text-slate-800 dark:text-slate-200 text-xs font-semibold cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Return to Student View</span>
+            <span>Student View</span>
           </button>
-
           <button
-            onClick={handleLogout}
-            className="p-2 rounded-xl bg-sky-50 hover:bg-rose-50 text-slate-600 hover:text-rose-700 border border-sky-200 hover:border-rose-200 transition-colors cursor-pointer"
-            title="Lock Admin Session & Logout"
+            onClick={logout}
+            className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 cursor-pointer"
+            title="Sign Out"
           >
             <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Admin Horizontal Tabs / Sidebar Bar */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none border-b border-sky-200">
+      {/* Section Tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-blue-200 dark:border-blue-800">
         {navItems.map((item) => {
-          const isActive = activeSection === item.id;
+          const active = activeSection === item.id;
           return (
             <button
               key={item.id}
-              onClick={() => {
-                audioFeedback.playClick();
-                setActiveSection(item.id);
-              }}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer ${
-                isActive
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'bg-white border border-sky-200 text-slate-700 hover:text-sky-700 hover:bg-sky-50'
+              onClick={() => setActiveSection(item.id)}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                active
+                  ? 'bg-[#0a192f] dark:bg-blue-700 text-white'
+                  : 'bg-white dark:bg-[#0d1d36] text-slate-700 dark:text-slate-300 border border-blue-200 dark:border-blue-800'
               }`}
             >
               {item.icon}
               <span>{item.label}</span>
-              {item.badge && (
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-sky-50 text-sky-700 border border-sky-200'
-                }`}>
-                  {item.badge}
-                </span>
-              )}
             </button>
           );
         })}
       </div>
 
-      {/* Main Admin Section View */}
-      <div className="pt-2">
-        {activeSection === 'overview' && (
-          <AdminOverview onNavigateSection={(sec) => setActiveSection(sec)} />
-        )}
-        {activeSection === 'users' && <UserManagement onShowToast={showToast} />}
-        {activeSection === 'syllabus-cms' && <SyllabusManager onShowToast={showToast} />}
-        {activeSection === 'questions-cms' && <QuestionBankCms onShowToast={showToast} />}
-        {activeSection === 'ai-studio' && <AiStudioCms onShowToast={showToast} />}
-        {activeSection === 'financials' && <FinancialsCms onShowToast={showToast} />}
-        {activeSection === 'settings' && <SystemSettingsCms onShowToast={showToast} />}
-      </div>
+      {activeSection === 'cloud-cms' && <FirestoreAdminPanel onShowToast={showToast} />}
+      {activeSection === 'overview' && <AdminOverview onNavigateSection={setActiveSection} />}
+      {activeSection === 'users' && <UserManagement onShowToast={showToast} />}
+      {activeSection === 'syllabus-cms' && <SyllabusManager onShowToast={showToast} />}
+      {activeSection === 'questions-cms' && <QuestionBankCms onShowToast={showToast} />}
+      {activeSection === 'ai-studio' && <AiStudioCms onShowToast={showToast} />}
+      {activeSection === 'financials' && <FinancialsCms onShowToast={showToast} />}
+      {activeSection === 'settings' && <SystemSettingsCms onShowToast={showToast} />}
     </div>
   );
 };

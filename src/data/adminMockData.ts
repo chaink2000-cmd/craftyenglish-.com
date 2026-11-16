@@ -321,7 +321,7 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
 ];
 
 export const INITIAL_AI_CONFIG: AiPromptConfig = {
-  selectedModel: 'gemini-3.8-flash',
+  selectedModel: 'gemini-4-hydrogen',
   temperature: 0.4,
   maxOutputTokens: 2048,
   safetyLevel: 'standard',

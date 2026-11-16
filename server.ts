@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 
 dotenv.config();
 
@@ -11,9 +11,39 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '2mb' }));
+
+// Sliding-window rate limiter for AI routes (30 requests / 60s per IP)
+const aiRateLimitStore = new Map<string, { count: number; windowStart: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 30;
+
+function aiRateLimiter(req: Request, res: Response, next: NextFunction) {
+  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+  const now = Date.now();
+  const entry = aiRateLimitStore.get(clientIp);
+
+  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    aiRateLimitStore.set(clientIp, { count: 1, windowStart: now });
+    return next();
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return res.status(429).json({
+      error: 'Too many tutor requests in a short period. Please wait a minute and try again.',
+    });
+  }
+
+  entry.count += 1;
+  return next();
+}
+
+function sanitizeText(input: unknown, maxLen = 6000): string {
+  if (typeof input !== 'string') return '';
+  return input.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, maxLen);
+}
 
 // Server-side Gemini AI client initialization
 let ai: GoogleGenAI | null = null;
@@ -28,314 +58,270 @@ if (process.env.GEMINI_API_KEY) {
   });
 }
 
+const ACTIVE_TEXT_MODEL = 'gemini-4-hydrogen';
+
 // Health check endpoint
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
     hasApiKey: !!process.env.GEMINI_API_KEY,
+    model: ACTIVE_TEXT_MODEL,
     timestamp: new Date().toISOString(),
   });
 });
 
-// 1. AI Crafty Coach Chat
-app.post('/api/ai/coach', async (req, res) => {
+// 1. Bilingual AI English Tutor & Coach (BEGINNER | INTERMEDIATE | ADVANCED)
+app.post('/api/ai/coach', aiRateLimiter, async (req, res) => {
   try {
-    const { messages, context = 'general', userLevel = 'Intermediate (B2)' } = req.body;
-    
+    const rawMessages = Array.isArray(req.body?.messages) ? req.body.messages.slice(-16) : [];
+    const learningMode = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].includes(req.body?.learningMode)
+      ? req.body.learningMode
+      : 'INTERMEDIATE';
+    const responseLanguage = ['en', 'hi', 'both'].includes(req.body?.language)
+      ? req.body.language
+      : 'both';
+    const taskType = sanitizeText(req.body?.taskType, 80) || 'general';
+
+    if (rawMessages.length === 0) {
+      return res.status(400).json({ error: 'Please provide at least one question or message.' });
+    }
+
+    const sanitizedMessages = rawMessages
+      .map((m: { role?: unknown; content?: unknown }) => ({
+        role: m?.role === 'assistant' ? 'model' : 'user',
+        content: sanitizeText(m?.content, 4000),
+      }))
+      .filter((m: { content: string }) => m.content.length > 0);
+
+    if (sanitizedMessages.length === 0) {
+      return res.status(400).json({ error: 'Message content cannot be empty.' });
+    }
+
     if (!ai) {
-      // Fallback response if API key is not yet set
-      const lastMsg = messages?.[messages.length - 1]?.content || 'Hello';
-      return res.json({
-        reply: `[Crafty Coach Note]: I'm currently running in smart sandbox mode. You asked: "${lastMsg.slice(0, 100)}...". When your Gemini API Key is linked in Secrets, I provide real-time conversational analysis, phoneme breakdown, and literature cross-referencing! In the meantime, explore our interactive Grammar, NET/SET exam drills, and Writing Studio!`,
-        suggestions: [
-          'How do I master Subject-Verb Agreement?',
-          'Explain John Donne’s metaphysical conceits',
-          'Review the difference between gerunds and participles',
-        ],
+      return res.status(503).json({
+        error: 'Gemini API key is not configured on the server yet. Please attach GEMINI_API_KEY in Settings > Secrets.',
       });
     }
 
-    const systemInstruction = `You are "Crafty Coach", an inspiring, world-class EdTech English mentor and Professor of English Literature & Applied Linguistics.
-You specialize in:
-1. English Grammar Mastery (rules, edge cases, tense nuances, voice, narration, common exam pitfalls).
-2. Advanced English Literature (Chaucer, Shakespeare, Romanticism, Victorian, Modern, Postmodern, Literary Theory & Criticism, Postcolonialism, Indian Writing in English, ELT/Pedagogy for NTA UGC NET, MPSET, MPESB Grade 1/2/3 TET).
-3. Creative and Academic Writing coaching (syntax variety, rhythm, rhetorical devices, clarity).
-Maintain an encouraging, scholarly yet engaging persona. Provide structured answers with clear examples, mnemonic tips, and exam-oriented takeaways. Format with concise markdown headers, bold highlights, and bullet points.`;
+    const levelGuidance: Record<string, string> = {
+      BEGINNER: 'Explain concepts step by step using simple everyday vocabulary, short sentences, clear foundational rules, and everyday English/Hindi illustrations.',
+      INTERMEDIATE: 'Provide balanced grammatical rules, sentence transformations, common examination pitfalls, British vs American usage notes, and applied examples.',
+      ADVANCED: 'Deliver scholarly depth suitable for NTA UGC NET, MP SET, and linguistics students, covering syntax trees, semantic nuances, stylistics, and critical theory.',
+    };
 
-    const contents = messages.map((m: { role: string; content: string }) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
+    const langGuidance: Record<string, string> = {
+      en: 'Respond in clear, structured academic English.',
+      hi: 'Respond primarily in accurate, natural Hindi (देवनागरी), retaining exact English grammatical terms and example sentences alongside natural Hindi translations.',
+      both: 'Respond bilingually: give the structured explanation and examples in clear English followed by a natural, accurate Hindi (हिन्दी) explanation and Hindi translations of key examples.',
+    };
+
+    const systemInstruction = `You are "Crafty English AI Tutor", an expert English grammarian, linguist, literature professor, spoken English coach, and Hindi-English bilingual educator.
+Active Student Level: ${learningMode} (${levelGuidance[learningMode]}).
+Language Setting: ${langGuidance[responseLanguage]}.
+Requested Focus Area: ${taskType}.
+
+Capabilities you perform accurately:
+1. Explain English grammar rules (all 37 curriculum levels) and correct mistakes step by step.
+2. Analyze clause & sentence structure, active/passive voice, direct/indirect speech, modals, conditionals, and common exam errors.
+3. Translate accurately and naturally between English and Hindi (without word-for-word robotic translation).
+4. Teach difficult vocabulary with phonetic clues, synonyms, antonyms, and contextual sentences.
+5. Generate personalized practice questions (with answers & explanations hidden below a clear divider or formatted cleanly) when asked.
+6. Guide spoken English pronunciation (British RP vs American English differences), fluency drills, and literary concepts (NTA UGC NET, MP SET, MPESB TET).
+Never invent fake book references or fabricated exam years.`;
+
+    const contents = sanitizedMessages.map((m: { role: string; content: string }) => ({
+      role: m.role,
       parts: [{ text: m.content }],
     }));
 
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents,
-        config: {
-          systemInstruction,
-        },
-      });
+    const response = await ai.models.generateContent({
+      model: ACTIVE_TEXT_MODEL,
+      contents,
+      config: {
+        systemInstruction,
+      },
+    });
 
-      const reply = response.text || 'I apologize, but I could not formulate a response at this moment.';
-      return res.json({ reply });
-    } catch (apiErr: unknown) {
-      console.warn('Gemini API call failed, providing resilient mentor response:', apiErr);
-      const lastMsg = messages?.[messages.length - 1]?.content || '';
-      return res.json({
-        reply: `### 🎓 Crafty Coach Quick Study Breakdown\n\nRegarding your question on **"${lastMsg.slice(0, 70)}"**:\n\n- **Core Linguistic Principle:** Always determine the primary grammatical function—whether a verbal form functions as a nominal substantive (Gerund), adjectival modifier (Participle), or bare action (Infinitive).\n- **High-Yield Exam Nuance (NTA NET & MPSET):** Pay particular attention to the possessive case preceding gerunds (e.g., *"approved of his [possessive] taking the exam"* vs objective *"him taking"* which is an exam error).\n- **Examiner's Strategy Tip:** In competitive teacher selection tests, questions often combine subject-verb proximity rules with inverted conditional syntax.`,
-      });
+    const reply = response.text;
+    if (!reply) {
+      return res.status(502).json({ error: 'Empty response received from Gemini AI Tutor.' });
     }
+    return res.json({ reply, model: ACTIVE_TEXT_MODEL, learningMode });
   } catch (err: unknown) {
     console.error('Error in /api/ai/coach:', err);
-    res.status(500).json({
-      error: 'Failed to process AI Coach request',
-      details: err instanceof Error ? err.message : String(err),
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : 'Failed to process AI English Tutor request.',
     });
   }
 });
 
 // 2. Dynamic Grammar Correction & Smart Fix Suggestions
-app.post('/api/ai/grammar-check', async (req, res) => {
+app.post('/api/ai/grammar-check', aiRateLimiter, async (req, res) => {
   try {
-    const { text } = req.body;
-    if (!text || typeof text !== 'string') {
-      return res.status(400).json({ error: 'Text is required for grammar check' });
+    const text = sanitizeText(req.body?.text, 5000);
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required for grammar check.' });
     }
 
     if (!ai) {
-      // Rule-based heuristic fallback
-      const errors = [];
-      const lower = text.toLowerCase();
-      if (lower.includes('their is')) {
-        const idx = lower.indexOf('their is');
-        errors.push({
-          id: 'err-1',
-          original: 'their is',
-          replacement: 'there is',
-          startIndex: idx,
-          endIndex: idx + 8,
-          category: 'Homophone Error',
-          severity: 'error',
-          explanation: 'Use "there is" to indicate existence; "their" is a possessive pronoun.',
-        });
-      }
-      if (lower.includes('should of')) {
-        const idx = lower.indexOf('should of');
-        errors.push({
-          id: 'err-2',
-          original: 'should of',
-          replacement: 'should have',
-          startIndex: idx,
-          endIndex: idx + 9,
-          category: 'Modal Auxiliary',
-          severity: 'error',
-          explanation: 'The modal auxiliary contraction "should\'ve" sounds like "should of", but the correct form is "should have".',
-        });
-      }
-      return res.json({
-        errors,
-        score: errors.length > 0 ? 82 : 96,
-        readabilityGrade: 'College Level',
-        suggestions: ['Vary sentence beginnings', 'Enhance transition words between paragraphs'],
+      return res.status(503).json({
+        error: 'Gemini API key is not configured on the server yet. Please check Settings > Secrets.',
       });
     }
 
-    const systemInstruction = `You are a strict yet constructive English Grammar & Syntax Analyzer.
-Given the user's text, analyze for:
-1. Grammatical errors (subject-verb agreement, tense shifts, preposition errors, misplaced modifiers, comma splices).
-2. Stylistic flaws (passive voice overload, redundancy, weak adjectives).
-Return a JSON response with:
-- errors: Array of {
-    "original": string,
-    "replacement": string,
-    "startIndex": number (approximate character start),
-    "category": string (e.g. "Subject-Verb Agreement", "Tense Inconsistency", "Preposition", "Punctuation"),
-    "severity": "error" | "warning" | "style",
-    "explanation": string
-  }
-- improvedText: string (fully polished version)
-- score: number (0-100 grammar health score)
-- readabilityNote: string
-- vocabularySuggestions: Array<{ original: string, advanced: string, reason: string }>
-Ensure output is valid JSON only.`;
+    const systemInstruction = `You are a strict, constructive English Grammar & Syntax Analyzer.
+Analyze the user's English text for grammatical errors (subject-verb agreement, tense shifts, articles, prepositions, modifiers, punctuation, British/American consistency) and style improvements.
+Include both clear English explanations and helpful natural Hindi hints inside explanations.`;
 
-    let parsedResult = null;
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: `Analyze this text for grammar, punctuation, and stylistic fixes:\n\n"""${text}"""`,
-        config: {
-          systemInstruction,
-          responseMimeType: 'application/json',
+    const response = await ai.models.generateContent({
+      model: ACTIVE_TEXT_MODEL,
+      contents: `Analyze this text for grammar, punctuation, and stylistic fixes:\n\n"""${text}"""`,
+      config: {
+        systemInstruction,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            score: { type: Type.INTEGER, description: '0-100 grammar score' },
+            improvedText: { type: Type.STRING, description: 'Fully corrected version of the text' },
+            readabilityNote: { type: Type.STRING, description: 'Concise readability and bilingual feedback note' },
+            errors: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  original: { type: Type.STRING },
+                  replacement: { type: Type.STRING },
+                  category: { type: Type.STRING },
+                  severity: { type: Type.STRING },
+                  explanation: { type: Type.STRING },
+                },
+              },
+            },
+            vocabularySuggestions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  original: { type: Type.STRING },
+                  advanced: { type: Type.STRING },
+                  reason: { type: Type.STRING },
+                },
+              },
+            },
+          },
         },
-      });
+      },
+    });
 
-      parsedResult = JSON.parse(response.text || '{}');
-    } catch (apiErr) {
-      console.warn('Gemini grammar check API unavailable, using rule-based parsing:', apiErr);
-      const errors = [];
-      const lower = text.toLowerCase();
-      if (lower.includes('their is')) {
-        const idx = lower.indexOf('their is');
-        errors.push({
-          original: 'their is',
-          replacement: 'there is',
-          startIndex: idx,
-          category: 'Homophone Error',
-          severity: 'error',
-          explanation: 'Use "there is" to indicate existence; "their" is a possessive pronoun.',
-        });
-      }
-      if (lower.includes('should of')) {
-        const idx = lower.indexOf('should of');
-        errors.push({
-          original: 'should of',
-          replacement: 'should have',
-          startIndex: idx,
-          category: 'Modal Auxiliary',
-          severity: 'error',
-          explanation: 'The contraction "should\'ve" expands to "should have", never "should of".',
-        });
-      }
-      if (lower.includes('was aware') && (lower.includes('students') || lower.includes('candidates'))) {
-        errors.push({
-          original: 'was aware',
-          replacement: 'were aware',
-          category: 'Subject-Verb Proximity',
-          severity: 'error',
-          explanation: 'Correlative conjunctions match the nearest plural subject.',
-        });
-      }
-      parsedResult = {
-        errors,
-        score: errors.length > 0 ? 82 : 96,
-        readabilityGrade: 'College Level',
-        improvedText: text.replace(/their is/gi, 'there is').replace(/should of/gi, 'should have'),
-      };
-    }
-
-    res.json(parsedResult);
+    const parsed = JSON.parse(response.text || '{}');
+    return res.json(parsed);
   } catch (err: unknown) {
     console.error('Error in /api/ai/grammar-check:', err);
-    res.status(500).json({
-      error: 'Grammar check failed',
-      details: err instanceof Error ? err.message : String(err),
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : 'Grammar check failed.',
     });
   }
 });
 
 // 3. Tone Shifter Tool
-app.post('/api/ai/tone-shift', async (req, res) => {
+app.post('/api/ai/tone-shift', aiRateLimiter, async (req, res) => {
   try {
-    const { text, targetTone = 'Formal Business' } = req.body;
+    const text = sanitizeText(req.body?.text, 5000);
+    const targetTone = sanitizeText(req.body?.targetTone, 80) || 'Academic Research';
     if (!text) {
-      return res.status(400).json({ error: 'Text is required' });
+      return res.status(400).json({ error: 'Text is required for tone shifting.' });
     }
 
     if (!ai) {
-      return res.json({
-        rewrittenText: `[${targetTone} Transformation]: ${text}`,
-        explanation: 'Tone shifter transformed your phrasing using academic lexical density and elevated syntax.',
-        toneApplied: targetTone,
+      return res.status(503).json({
+        error: 'Gemini API key is not configured on the server yet. Please check Settings > Secrets.',
       });
     }
 
-    const systemInstruction = `You are an expert English stylistic copywriter and editor.
-Rewrite the provided text in the target tone:
-- "Formal Business": Professional, diplomatic, action-oriented, clear corporate communication.
-- "Creative Storytelling": Evocative, sensory, metaphorical, dynamic cadence.
-- "Casual Slang & Idiomatic": Natural conversational English, relaxed idioms, colloquial phrasing.
-- "Academic Research": Scholarly, objective, sophisticated vocabulary, nominalization, rigorous hedging.
-- "NET/SET Critical Essay": Literary critique style, citing conceptual frameworks, high rhetorical elegance.
+    const systemInstruction = `You are an expert English stylistic editor. Rewrite the text cleanly in the requested tone ("Formal Business", "Creative Storytelling", "Casual Idiomatic", "Academic Research", or "NET/SET Critical Essay").`;
 
-Return a JSON object with:
-{
-  "rewrittenText": string,
-  "explanation": string (explaining the 2-3 key rhetorical shifts made),
-  "keyVocabularyUsed": string[]
-}`;
-
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: `Target Tone: ${targetTone}\n\nOriginal Text:\n"""${text}"""`,
-        config: {
-          systemInstruction,
-          responseMimeType: 'application/json',
+    const response = await ai.models.generateContent({
+      model: ACTIVE_TEXT_MODEL,
+      contents: `Target Tone: ${targetTone}\n\nOriginal Text:\n"""${text}"""`,
+      config: {
+        systemInstruction,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            rewrittenText: { type: Type.STRING },
+            explanation: { type: Type.STRING },
+            keyVocabularyUsed: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
+          },
         },
-      });
+      },
+    });
 
-      const parsed = JSON.parse(response.text || '{}');
-      return res.json(parsed);
-    } catch (apiErr) {
-      console.warn('Tone shift API unavailable, using heuristic transformation:', apiErr);
-      return res.json({
-        rewrittenText: `Rigorous academic engagement with canonical dramatic and poetic texts is indispensable for qualifying this examination. While the exhaustive syllabus necessitates substantial intellectual endurance, no pedagogical shortcuts exist.`,
-        explanation: `Elevated lexical density, nominalized key verbs, and eliminated colloquial hedging for ${targetTone} register.`,
-        keyVocabularyUsed: ['indispensable', 'canonical', 'epistemic', 'perseverance'],
-      });
-    }
+    const parsed = JSON.parse(response.text || '{}');
+    return res.json(parsed);
   } catch (err: unknown) {
     console.error('Error in /api/ai/tone-shift:', err);
-    res.status(500).json({
-      error: 'Tone shift failed',
-      details: err instanceof Error ? err.message : String(err),
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : 'Tone shift failed.',
     });
   }
 });
 
-// 4. Exam Explainer (NTA NET, MPSET, MPESB Grade 1/2/3 TET)
-app.post('/api/ai/exam-explainer', async (req, res) => {
+// 4. Exam Explainer (NTA UGC NET, MP SET, MPESB TET, Grammar)
+app.post('/api/ai/exam-explainer', aiRateLimiter, async (req, res) => {
   try {
-    const { question, options, selectedOption, correctOption, examContext = 'NTA NET English' } = req.body;
-    
+    const question = sanitizeText(req.body?.question, 2000);
+    const options = Array.isArray(req.body?.options) ? req.body.options.slice(0, 8) : [];
+    const selectedOption = sanitizeText(req.body?.selectedOption, 400);
+    const correctOption = sanitizeText(req.body?.correctOption, 400);
+    const examContext = sanitizeText(req.body?.examContext, 120) || 'NTA UGC NET English';
+
+    if (!question || !correctOption) {
+      return res.status(400).json({ error: 'Question and verified correct option are required.' });
+    }
+
     if (!ai) {
-      return res.json({
-        detailedExplanation: `Option "${correctOption}" is the historically verified canonical answer in ${examContext}. Questions on this topic evaluate chronological publication sequence, textual evidence, and theoretical authorship.`,
-        examTip: 'Always cross-check dates and seminal treatises.',
+      return res.status(503).json({
+        error: 'Gemini API key is not configured on the server yet. Please check Settings > Secrets.',
       });
     }
 
-    const systemInstruction = `You are the lead Academic Director for NTA UGC NET English, MPSET, and MPESB Teacher Eligibility Tests.
-Provide an exhaustive, high-yield examination breakdown for the given question.
-Format as structured JSON:
-{
-  "detailedExplanation": string (formatted in clean markdown),
-  "examTip": string,
-  "pyqTrendNote": string
-}`;
+    const systemInstruction = `You are the Academic Director for NTA UGC NET English, MP SET, and Competitive English Grammar.
+Provide an accurate, scholarly breakdown without inventing false publication years or fake citations.`;
 
     const prompt = `Context: ${examContext}
 Question: ${question}
 Options: ${JSON.stringify(options)}
-Correct Answer: ${correctOption}
-Candidate's Selected Answer: ${selectedOption || 'Not answered'}`;
+Verified Correct Answer: ${correctOption}
+Student Selected: ${selectedOption || 'Not answered'}`;
 
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          systemInstruction,
-          responseMimeType: 'application/json',
+    const response = await ai.models.generateContent({
+      model: ACTIVE_TEXT_MODEL,
+      contents: prompt,
+      config: {
+        systemInstruction,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            detailedExplanation: { type: Type.STRING },
+            examTip: { type: Type.STRING },
+            pyqTrendNote: { type: Type.STRING },
+          },
         },
-      });
+      },
+    });
 
-      const parsed = JSON.parse(response.text || '{}');
-      return res.json(parsed);
-    } catch (apiErr) {
-      console.warn('Exam explainer API unavailable, returning high-yield exam breakdown:', apiErr);
-      return res.json({
-        detailedExplanation: `### 🎯 High-Yield Exam Analysis (${examContext})\n\n- **Verified Correct Answer:** **${correctOption}**\n- **Theoretical & Canonical Context:** This question directly evaluates historical lineage and core treatises. In competitive examinations like NTA NET, MPSET, and MPESB Grade 1, questions frequently contrast foundational primary texts against their subsequent critical reappraisals.\n- **Distractor Elimination:** The alternative options refer to distinct historical periods or alternative theoretical paradigms.\n- **Crucial Memory Hack:** Focus on chronological benchmarks and coined terminology (e.g. Différance, Gynocriticism, Communicative Competence).`,
-        examTip: 'Check publication sequences and authorial prefaces during revision.',
-        pyqTrendNote: 'Repeatedly tested in UGC NET Paper II and state eligibility tests.',
-      });
-    }
+    const parsed = JSON.parse(response.text || '{}');
+    return res.json(parsed);
   } catch (err: unknown) {
     console.error('Error in /api/ai/exam-explainer:', err);
-    res.status(500).json({
-      error: 'Exam explanation failed',
-      details: err instanceof Error ? err.message : String(err),
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : 'Exam explanation failed.',
     });
   }
 });

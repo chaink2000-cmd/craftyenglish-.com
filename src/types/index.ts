@@ -1,19 +1,163 @@
-export type NavTab = 
+export type NavTab =
   | 'home'
-  | 'coach'
   | 'grammar'
   | 'literature'
-  | 'mpesb-paper1'
-  | 'mcqs'
-  | 'vocab'
-  | 'syntax-games'
-  | 'writing-studio'
   | 'speech-lab'
+  | 'vocab'
+  | 'writing-studio'
+  | 'mcqs'
+  | 'competitive'
+  | 'resources'
+  | 'coach'
   | 'progress'
+  | 'about'
+  | 'contact'
+  | 'mpesb-paper1'
+  | 'syntax-games'
   | 'pricing'
   | 'admin';
 
+export type AppLanguage = 'en' | 'hi';
+export type ThemeMode = 'light' | 'dark';
+export type TutorLearningMode = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 
+export type LiteratureTrack = 'paper1' | 'net-mpset-paper2' | 'mp-grade1' | 'mp-grade2';
+
+export interface PracticePreset {
+  view: 'interactive' | 'yearwise-archive' | 'practice-15';
+  mode: 'practice' | 'timed';
+  examCategory?: string;
+  moduleNumber?: number;
+  nonce: number;
+}
+
+export type ResourceSubTab = 'notes' | 'pdf' | 'charts';
+
+// --- 37-Module Bilingual Grammar Curriculum Types ---
+export type GrammarLevelNumber = 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface BilingualExample {
+  en: string;
+  hi: string;
+  note?: string;
+}
+
+export interface BilingualRule {
+  titleEn: string;
+  titleHi: string;
+  explanationEn: string;
+  explanationHi: string;
+  formula?: string;
+  correctExample: BilingualExample;
+  incorrectExample?: string;
+}
+
+export interface BilingualComparisonTable {
+  titleEn: string;
+  titleHi: string;
+  headers: string[];
+  rows: string[][];
+}
+
+export interface BilingualSubtopicLesson {
+  id: string;
+  titleEn: string;
+  titleHi: string;
+  objectivesEn: string[];
+  objectivesHi: string[];
+  introEn: string;
+  introHi: string;
+  definitionEn: string;
+  definitionHi: string;
+  detailedExplanationEn: string;
+  detailedExplanationHi: string;
+  typesClassification: {
+    nameEn: string;
+    nameHi: string;
+    descriptionEn: string;
+    descriptionHi: string;
+    examples: BilingualExample[];
+  }[];
+  rules: BilingualRule[];
+  structuresAndFormulas: string[];
+  examples: BilingualExample[]; // >= 10 examples per key subtopic
+  comparisonTables: BilingualComparisonTable[];
+  realLifeApplicationsEn: string[];
+  realLifeApplicationsHi: string[];
+  commonMistakes: {
+    wrong: string;
+    right: string;
+    reasonEn: string;
+    reasonHi: string;
+    britishVsAmericanNote?: string;
+  }[];
+  examPointsEn: string[];
+  examPointsHi: string[];
+  summaryEn: string;
+  summaryHi: string;
+}
+
+export type InteractiveQuestionFormat =
+  | 'mcq'
+  | 'fill-blank'
+  | 'true-false'
+  | 'match-following'
+  | 'identify-error'
+  | 'sentence-correction'
+  | 'sentence-transformation'
+  | 'drag-drop'
+  | 'arrange-words'
+  | 'identify-pos'
+  | 'tense-identification'
+  | 'active-passive'
+  | 'direct-indirect'
+  | 'correct-word'
+  | 'paragraph-grammar';
+
+export type QuestionDifficulty = 'Beginner' | 'Easy' | 'Intermediate' | 'Advanced' | 'Expert';
+
+export interface PracticeQuestion15 {
+  id: string;
+  moduleNumber: number;
+  moduleTitle: string;
+  topic: string;
+  subtopic: string;
+  format: InteractiveQuestionFormat;
+  difficulty: QuestionDifficulty;
+  language: 'en' | 'hi' | 'bilingual';
+  examCategory: string;
+  sourceType: 'Original Practice' | 'Verified PYQ';
+  examReference?: string;
+  passage?: string; // for paragraph-grammar
+  prompt: string;
+  promptHi?: string;
+  options?: string[]; // for mcq, true-false, identify-error, identify-pos, tense-identification, correct-word, paragraph-grammar
+  matchPairs?: { left: string; right: string }[]; // for match-following
+  dragItems?: string[]; // for drag-drop or arrange-words
+  dropTargets?: string[]; // for drag-drop
+  correctAnswer: string; // canonical answer string (JSON or exact string)
+  explanationEn: string;
+  explanationHi: string;
+}
+
+export interface GrammarModule37 {
+  id: string;
+  moduleNumber: number;
+  levelNumber: GrammarLevelNumber;
+  levelTitle: string;
+  levelTitleHi: string;
+  titleEn: string;
+  titleHi: string;
+  estimatedMinutes: number;
+  visualFocus: string;
+  lessons: BilingualSubtopicLesson[];
+  practiceExercises: PracticeQuestion15[];
+  mcqs: PracticeQuestion15[];
+  topicAssessment: PracticeQuestion15[];
+  revisionTest: PracticeQuestion15[];
+}
+
+// --- Legacy Visual Lab Types (Preserved for 7-Pillar Visual Interactive Diagrams) ---
 export type GrammarCategory =
   | 'Parts of Speech'
   | 'Determiners & Articles'
@@ -191,11 +335,10 @@ export interface VocabWord {
   antonyms: string[];
   etymology: string;
   examRelevance: string;
-  // SRS data
-  interval: number; // in days
+  interval: number;
   easeFactor: number;
   repetitions: number;
-  dueDate: string; // ISO string
+  dueDate: string;
   status: 'new' | 'learning' | 'mastered';
 }
 
@@ -263,13 +406,77 @@ export interface SpeechPhrase {
   stressPattern: string;
 }
 
-export type AdminSection = 
-  | 'overview' 
-  | 'users' 
-  | 'syllabus-cms' 
-  | 'questions-cms' 
-  | 'ai-studio' 
-  | 'financials' 
+// --- Firebase User, Progress, Certificate & Admin Types ---
+export interface FirebaseUserProfile {
+  uid: string;
+  displayName: string;
+  email: string;
+  role: 'student' | 'teacher' | 'admin';
+  learningLevel: 'Beginner' | 'Intermediate' | 'Advanced' | 'NET Scholar';
+  xp: number;
+  streakDays: number;
+  completedModulesCount: number;
+  preferredLanguage: AppLanguage;
+  accountStatus: 'active' | 'suspended';
+}
+
+export interface QuizAttemptRecord {
+  id: string;
+  uid: string;
+  quizId: string;
+  quizTitle: string;
+  category: string;
+  score: number;
+  totalQuestions: number;
+  percentage: number;
+  mode: 'timed' | 'untimed';
+  createdAt: string;
+}
+
+export interface StudentProgressRecord {
+  id: string;
+  uid: string;
+  moduleId: string;
+  moduleTitle: string;
+  status: 'in_progress' | 'completed';
+  progressPercent: number;
+  updatedAt: string;
+}
+
+export interface BookmarkRecord {
+  id: string;
+  uid: string;
+  itemId: string;
+  itemType: 'lesson' | 'question' | 'author';
+  title: string;
+  category: string;
+  createdAt: string;
+}
+
+export interface CertificateRecord {
+  id: string;
+  uid: string;
+  certificateCode: string;
+  studentName: string;
+  courseTitle: string;
+  issuedAt: string;
+}
+
+export interface SiteConfigRecord {
+  siteName: string;
+  tagline: string;
+  educatorName: string;
+  contactEmail: string;
+  heroNotice: string;
+}
+
+export type AdminSection =
+  | 'overview'
+  | 'users'
+  | 'syllabus-cms'
+  | 'questions-cms'
+  | 'ai-studio'
+  | 'financials'
   | 'settings';
 
 export interface AdminUser {
@@ -351,4 +558,3 @@ export interface PricingTierConfig {
   institutionMonthlyInr: number;
   usdToInrRate: number;
 }
-

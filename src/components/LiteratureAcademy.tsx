@@ -13,22 +13,36 @@ import {
 import { audioFeedback } from '../utils/audioFeedback';
 import { adminStorage } from '../utils/adminStorage';
 
+import { LiteratureTrack } from '../types';
+
 interface LiteratureAcademyProps {
   onNavigateToMCQ?: (examFilter: string) => void;
+  initialTrack?: LiteratureTrack;
+  trackNonce?: number;
 }
 
-export const LiteratureAcademy: React.FC<LiteratureAcademyProps> = () => {
+export const LiteratureAcademy: React.FC<LiteratureAcademyProps> = ({
+  initialTrack,
+  trackNonce,
+}) => {
   // Master category tabs:
   // 1: 'paper1' (NTA NET Paper 1 All 10 Units)
   // 2: 'net-mpset-paper2' (NTA NET & MPSET Paper 2 Literature Together - All 10 Units)
   // 3: 'mp-grade1' (MPESB Grade 1 High School Teacher)
   // 4: 'mp-grade2' (MPESB Grade 2 Middle School & TET Pedagogy)
-  const [masterTab, setMasterTab] = useState<'paper1' | 'net-mpset-paper2' | 'mp-grade1' | 'mp-grade2'>('net-mpset-paper2');
+  const [masterTab, setMasterTab] = useState<LiteratureTrack>(initialTrack || 'net-mpset-paper2');
 
   const [p1Units, setP1Units] = useState(() => adminStorage.getPaper1Syllabus());
   const [p2Units, setP2Units] = useState(() => adminStorage.getLiteratureSyllabus());
   const [g1Units, setG1Units] = useState(() => adminStorage.getMpesbGrade1Syllabus());
   const [g2Units, setG2Units] = useState(() => adminStorage.getMpesbGrade2Syllabus());
+
+  React.useEffect(() => {
+    if (initialTrack) {
+      setMasterTab(initialTrack);
+      setSearchQuery('');
+    }
+  }, [initialTrack, trackNonce]);
 
   React.useEffect(() => {
     const handleUpdate = () => {

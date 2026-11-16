@@ -1,0 +1,320 @@
+{
+  "entities": {
+    "UserPublicProfile": {
+      "title": "UserPublicProfile",
+      "description": "Non-PII scholar profile, learning level, points, and streak data.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "role": { "type": "string", "enum": ["student", "teacher", "admin"] },
+        "learningLevel": { "type": "string", "enum": ["Beginner", "Intermediate", "Advanced", "NET Scholar"] },
+        "xp": { "type": "number" },
+        "streakDays": { "type": "number" },
+        "completedModulesCount": { "type": "number" },
+        "preferredLanguage": { "type": "string", "enum": ["en", "hi"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "role", "learningLevel", "xp", "streakDays", "completedModulesCount", "preferredLanguage", "createdAt", "updatedAt"]
+    },
+    "UserPrivateInfo": {
+      "title": "UserPrivateInfo",
+      "description": "Isolated PII storage for authenticated user email and account status.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "accountStatus": { "type": "string", "enum": ["active", "suspended"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "accountStatus", "updatedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted admin role mapping controlled exclusively by existing administrators.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "grantedBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "grantedBy", "createdAt"]
+    },
+    "Course": {
+      "title": "Course",
+      "description": "Course curriculum container managed by admins.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "category": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "level": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "description": { "type": "string", "minLength": 5, "maxLength": 1500 },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "category", "level", "description", "published", "createdBy", "createdAt", "updatedAt"]
+    },
+    "CourseModule": {
+      "title": "CourseModule",
+      "description": "Grammar or academic module within a course.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "courseId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "moduleNumber": { "type": "number" },
+        "titleEn": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "titleHi": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "levelName": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "published": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "courseId", "moduleNumber", "titleEn", "titleHi", "levelName", "published", "updatedAt"]
+    },
+    "Lesson": {
+      "title": "Lesson",
+      "description": "Bilingual grammar or literature lesson managed by admins.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "moduleId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "titleEn": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "titleHi": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "summaryEn": { "type": "string", "minLength": 5, "maxLength": 3000 },
+        "summaryHi": { "type": "string", "minLength": 5, "maxLength": 3000 },
+        "published": { "type": "boolean" },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "moduleId", "titleEn", "titleHi", "summaryEn", "summaryHi", "published", "createdBy", "createdAt", "updatedAt"]
+    },
+    "Subtopic": {
+      "title": "Subtopic",
+      "description": "Subtopic details attached to a lesson.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "lessonId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "titleEn": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "titleHi": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "explanationEn": { "type": "string", "minLength": 5, "maxLength": 3000 },
+        "explanationHi": { "type": "string", "minLength": 5, "maxLength": 3000 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "lessonId", "titleEn", "titleHi", "explanationEn", "explanationHi", "updatedAt"]
+    },
+    "BankQuestion": {
+      "title": "BankQuestion",
+      "description": "Admin-managed examination and grammar question item.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "prompt": { "type": "string", "minLength": 5, "maxLength": 2000 },
+        "questionType": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "topic": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "moduleId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "difficulty": { "type": "string", "enum": ["Beginner", "Easy", "Intermediate", "Advanced", "Expert"] },
+        "examCategory": { "type": "string", "minLength": 2, "maxLength": 100 },
+        "language": { "type": "string", "enum": ["en", "hi", "bilingual"] },
+        "options": { "type": "array" },
+        "correctAnswer": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "explanationEn": { "type": "string", "minLength": 3, "maxLength": 2000 },
+        "explanationHi": { "type": "string", "minLength": 3, "maxLength": 2000 },
+        "sourceType": { "type": "string", "enum": ["Original Practice", "Verified PYQ"] },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "prompt", "questionType", "topic", "moduleId", "difficulty", "examCategory", "language", "options", "correctAnswer", "explanationEn", "explanationHi", "sourceType", "createdBy", "createdAt", "updatedAt"]
+    },
+    "QuizConfig": {
+      "title": "QuizConfig",
+      "description": "Published quiz definition.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "title": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "moduleId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "timeLimitSeconds": { "type": "number" },
+        "questionCount": { "type": "number" },
+        "published": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "moduleId", "timeLimitSeconds", "questionCount", "published", "updatedAt"]
+    },
+    "QuizAttempt": {
+      "title": "QuizAttempt",
+      "description": "Immutable student quiz attempt record.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "quizId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "quizTitle": { "type": "string", "minLength": 2, "maxLength": 160 },
+        "category": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "percentage": { "type": "number" },
+        "mode": { "type": "string", "enum": ["timed", "untimed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "quizId", "quizTitle", "category", "score", "totalQuestions", "percentage", "mode", "createdAt"]
+    },
+    "StudentProgress": {
+      "title": "StudentProgress",
+      "description": "Per-student lesson/module completion state.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "moduleId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "moduleTitle": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "status": { "type": "string", "enum": ["in_progress", "completed"] },
+        "progressPercent": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "moduleId", "moduleTitle", "status", "progressPercent", "createdAt", "updatedAt"]
+    },
+    "Bookmark": {
+      "title": "Bookmark",
+      "description": "Saved lesson or question bookmark owned by a student.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "itemId": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "itemType": { "type": "string", "enum": ["lesson", "question", "author"] },
+        "title": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "category": { "type": "string", "minLength": 2, "maxLength": 80 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "itemId", "itemType", "title", "category", "createdAt"]
+    },
+    "Certificate": {
+      "title": "Certificate",
+      "description": "Completion certificate issued for completed course levels.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "certificateCode": { "type": "string", "minLength": 4, "maxLength": 64 },
+        "studentName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "courseTitle": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "issuedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "certificateCode", "studentName", "courseTitle", "issuedAt"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "Site-wide announcement banner managed by admins.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "text": { "type": "string", "minLength": 3, "maxLength": 300 },
+        "variant": { "type": "string", "enum": ["info", "success", "warning", "urgent"] },
+        "isLive": { "type": "boolean" },
+        "createdBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "text", "variant", "isLive", "createdBy", "createdAt", "updatedAt"]
+    },
+    "SiteSetting": {
+      "title": "SiteSetting",
+      "description": "Global site configuration managed by admins.",
+      "type": "object",
+      "properties": {
+        "siteName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "tagline": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "educatorName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "contactEmail": { "type": "string", "minLength": 3, "maxLength": 200 },
+        "heroNotice": { "type": "string", "minLength": 2, "maxLength": 300 },
+        "updatedBy": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["siteName", "tagline", "educatorName", "contactEmail", "heroNotice", "updatedBy", "updatedAt"]
+    },
+    "ContactInquiry": {
+      "title": "ContactInquiry",
+      "description": "Contact Us inquiry submitted by authenticated users.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "senderName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "subject": { "type": "string", "minLength": 2, "maxLength": 180 },
+        "message": { "type": "string", "minLength": 5, "maxLength": 2000 },
+        "status": { "type": "string", "enum": ["open", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "senderName", "subject", "message", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "UserPublicProfile" },
+      "description": "Public/non-PII scholar metadata indexed by Firebase Auth UID."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "UserPrivateInfo" },
+      "description": "Private PII document (email, status) accessible only to owner or admin."
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "AdminRecord" },
+      "description": "Trusted admin role mapping documents."
+    },
+    "/courses/{courseId}": {
+      "schema": { "$ref": "Course" },
+      "description": "Published courses readable by users and writable by admins."
+    },
+    "/modules/{moduleId}": {
+      "schema": { "$ref": "CourseModule" },
+      "description": "Course module definitions readable by users and writable by admins."
+    },
+    "/lessons/{lessonId}": {
+      "schema": { "$ref": "Lesson" },
+      "description": "CMS lessons readable when published and writable by admins."
+    },
+    "/subtopics/{subtopicId}": {
+      "schema": { "$ref": "Subtopic" },
+      "description": "Lesson subtopics readable by users and writable by admins."
+    },
+    "/questions/{questionId}": {
+      "schema": { "$ref": "BankQuestion" },
+      "description": "Question bank items writable only by admins."
+    },
+    "/quizzes/{quizId}": {
+      "schema": { "$ref": "QuizConfig" },
+      "description": "Quiz definitions writable only by admins."
+    },
+    "/quizAttempts/{attemptId}": {
+      "schema": { "$ref": "QuizAttempt" },
+      "description": "Immutable quiz attempt records scoped per user."
+    },
+    "/studentProgress/{progressId}": {
+      "schema": { "$ref": "StudentProgress" },
+      "description": "Per-user lesson and module completion progress."
+    },
+    "/bookmarks/{bookmarkId}": {
+      "schema": { "$ref": "Bookmark" },
+      "description": "Per-user saved lessons and bookmarked questions."
+    },
+    "/certificates/{certificateId}": {
+      "schema": { "$ref": "Certificate" },
+      "description": "Issued completion certificates owned by student or admin."
+    },
+    "/announcements/{announcementId}": {
+      "schema": { "$ref": "Announcement" },
+      "description": "Global announcement banners writable by admins."
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "SiteSetting" },
+      "description": "Platform configuration writable by admins."
+    },
+    "/contactInquiries/{inquiryId}": {
+      "schema": { "$ref": "ContactInquiry" },
+      "description": "User inquiries submitted from Contact Us and reviewed by admins."
+    }
+  }
+}

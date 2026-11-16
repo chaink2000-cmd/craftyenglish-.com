@@ -38,12 +38,10 @@ export const AiStudioCms: React.FC<AiStudioCmsProps> = ({ onShowToast }) => {
   };
 
   const handleResetDefaults = () => {
-    if (confirm('Reset AI Prompts and parameters to factory defaults?')) {
-      audioFeedback.playClick();
-      const def = adminStorage.getAiConfig();
-      setConfig(def);
-      onShowToast('Restored default prompt configurations');
-    }
+    audioFeedback.playClick();
+    const def = adminStorage.getAiConfig();
+    setConfig(def);
+    onShowToast('Restored default prompt configurations');
   };
 
   const handleRunPlaygroundTest = async () => {
@@ -301,7 +299,7 @@ export const AiStudioCms: React.FC<AiStudioCmsProps> = ({ onShowToast }) => {
                 onChange={(e) => setConfig({ ...config, selectedModel: e.target.value })}
                 className="w-full p-2.5 bg-sky-50 border border-sky-200 rounded-lg text-slate-900 font-mono focus:outline-none focus:border-purple-500"
               >
-                <option value="gemini-3.8-flash">gemini-3.8-flash (Recommended Fast)</option>
+                <option value="gemini-4-hydrogen">gemini-4-hydrogen (Recommended Fast)</option>
                 <option value="gemini-2.5-flash">gemini-2.5-flash (Standard)</option>
                 <option value="gemini-2.5-pro">gemini-2.5-pro (Deep Reasoning)</option>
               </select>

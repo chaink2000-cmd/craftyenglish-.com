@@ -92,18 +92,16 @@ export const QuestionBankCms: React.FC<QuestionBankCmsProps> = ({ onShowToast })
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this question from the active bank?')) {
-      audioFeedback.playClick();
-      const updated = adminStorage.deleteMCQ(id);
-      setMcqs(updated);
-      onShowToast('Question removed from Question Bank');
-    }
+    audioFeedback.playClick();
+    const updated = adminStorage.deleteMCQ(id);
+    setMcqs(updated);
+    onShowToast('Question removed from Question Bank');
   };
 
   // AI Explanatory Rationale & Mnemonic Generator
   const handleGenerateAiRationale = async () => {
     if (!formQuestion.trim()) {
-      alert('Please enter the question statement first.');
+      onShowToast('Please enter the question statement first.');
       return;
     }
     const correctOptionText = formOptions[formCorrectIndex] || 'Selected option';
@@ -147,11 +145,11 @@ export const QuestionBankCms: React.FC<QuestionBankCmsProps> = ({ onShowToast })
   const handleSaveQuestion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formQuestion.trim()) {
-      alert('Question text is required.');
+      onShowToast('Question text is required.');
       return;
     }
     if (formOptions.some((o) => !o.trim())) {
-      alert('Please enter all 4 options.');
+      onShowToast('Please enter all 4 options.');
       return;
     }
 

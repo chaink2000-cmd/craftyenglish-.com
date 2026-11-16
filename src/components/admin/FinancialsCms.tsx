@@ -66,18 +66,16 @@ export const FinancialsCms: React.FC<FinancialsCmsProps> = ({ onShowToast }) => 
   };
 
   const handleDeleteCoupon = (id: string, code: string) => {
-    if (confirm(`Delete promo code: ${code}?`)) {
-      audioFeedback.playClick();
-      const list = adminStorage.deleteCoupon(id);
-      setCoupons(list);
-      onShowToast(`Deleted coupon ${code}`);
-    }
+    audioFeedback.playClick();
+    const list = adminStorage.deleteCoupon(id);
+    setCoupons(list);
+    onShowToast(`Deleted coupon ${code}`);
   };
 
   const handleCreateCoupon = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCode.trim()) {
-      alert('Please enter a coupon code.');
+      onShowToast('Please enter a coupon code.');
       return;
     }
 
@@ -103,12 +101,10 @@ export const FinancialsCms: React.FC<FinancialsCmsProps> = ({ onShowToast }) => 
   };
 
   const handleRefund = (tx: AdminTransaction) => {
-    if (confirm(`Issue full refund of ${tx.currency} ${tx.amount} to ${tx.customerEmail}?`)) {
-      audioFeedback.playClick();
-      const updated = adminStorage.refundTransaction(tx.id);
-      setTransactions(updated);
-      onShowToast(`Issued refund for invoice ${tx.invoiceId}`);
-    }
+    audioFeedback.playClick();
+    const updated = adminStorage.refundTransaction(tx.id);
+    setTransactions(updated);
+    onShowToast(`Issued refund for invoice ${tx.invoiceId}`);
   };
 
   return (

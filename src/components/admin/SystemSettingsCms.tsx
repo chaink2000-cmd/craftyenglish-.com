@@ -59,7 +59,7 @@ export const SystemSettingsCms: React.FC<SystemSettingsCmsProps> = ({ onShowToas
   // Import JSON backup
   const handleImportBackup = () => {
     if (!importJsonText.trim()) {
-      alert('Please paste the JSON backup data.');
+      onShowToast('Please paste the JSON backup data.');
       return;
     }
     audioFeedback.playClick();
@@ -73,19 +73,17 @@ export const SystemSettingsCms: React.FC<SystemSettingsCmsProps> = ({ onShowToas
       onShowToast('Successfully restored CMS database from JSON archive!');
     } else {
       audioFeedback.playError();
-      alert('Invalid JSON archive format. Please check the backup string.');
+      onShowToast('Invalid JSON archive format. Please check the backup string.');
     }
   };
 
   // Reset to defaults
   const handleResetDefaults = () => {
-    if (confirm('WARNING: Reset all CMS customizations, questions, and users to factory defaults?')) {
-      audioFeedback.playClick();
-      adminStorage.resetToDefaults();
-      setAnnouncement(adminStorage.getGlobalAnnouncement());
-      setAuditLogs(adminStorage.getAuditLogs());
-      onShowToast('Reset CMS database to factory initial state');
-    }
+    audioFeedback.playClick();
+    adminStorage.resetToDefaults();
+    setAnnouncement(adminStorage.getGlobalAnnouncement());
+    setAuditLogs(adminStorage.getAuditLogs());
+    onShowToast('Reset CMS database to factory initial state');
   };
 
   // Filtered audit logs

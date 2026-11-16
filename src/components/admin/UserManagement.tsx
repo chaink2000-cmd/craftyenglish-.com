@@ -72,18 +72,16 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onShowToast }) =
   };
 
   const handleDeleteUser = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to permanently delete user: ${name}?`)) {
-      audioFeedback.playClick();
-      const updatedList = adminStorage.deleteUser(id);
-      setUsers(updatedList);
-      onShowToast(`Deleted user ${name}`);
-    }
+    audioFeedback.playClick();
+    const updatedList = adminStorage.deleteUser(id);
+    setUsers(updatedList);
+    onShowToast(`Deleted user ${name}`);
   };
 
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserName.trim() || !newUserEmail.trim()) {
-      alert('Please enter Name and Email');
+      onShowToast('Please enter Name and Email');
       return;
     }
 
